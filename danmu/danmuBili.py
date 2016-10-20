@@ -1,4 +1,5 @@
 # encoding: utf-8
+
 try:
     import xml.etree.cElementTree as ET
 except ImportError:
@@ -17,4 +18,5 @@ for elem in tree.iter(tag = "d"):
     danmuDate2 = time.strftime("%Y-%m-%d %H:%M:%S", danmuDate)
     print elem.text, pDataList[0], danmuDate2
 
-print "-----------字幕解析完毕------------"
+print "-----字幕解析完毕-----"
+
