@@ -89,4 +89,5 @@ ENV/
 .ropeproject
 
 # danmu source file
-.xml
+*.xml
+test.py
