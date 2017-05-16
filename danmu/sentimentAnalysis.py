@@ -4,6 +4,7 @@ import pickle
 import jieba
 import xlrd
 import time
+import jieba.posseg as pseg
 
 sentence1 = ["我", "好", "喜欢", "这个", "电影啊", "讨厌"]
 sentence2 = "我非常喜欢这个电影啊, 但是我讨厌主角"
@@ -144,4 +145,10 @@ if __name__ == "__main__":
         # print getWordType("我")
     t2 = time.time()
     print 'Spent time: ', t2 - t1
-    printScoreAndWord(getScoreBySen(sentence4))
+
+    oneBarrageList = pseg.cut(sentence2)
+    for word, flag in oneBarrageList:
+        if(flag == 'n' or flag == 'a'):
+            print word, type(word)
+
+    # printScoreAndWord(getScoreBySen(sentence4))

@@ -4,6 +4,8 @@ from bs4 import BeautifulSoup
 import time
 import json as js
 
+import xmlDL
+
 favBoxUrl = 'http://space.bilibili.com/ajax/fav/getBoxList'
 favListUrl = 'http://space.bilibili.com/ajax/fav/getList'
 
@@ -52,10 +54,10 @@ def getFavList(userId, favBoxId):
 
     if r.status_code == 200:
         jsonDoc = js.loads(r.text)
-        pageId = jsonDoc['data']['pages']
-        if pageId == 0:
-            print 'no video in this box...'
+
+        if jsonDoc['status'] == False:
             return
+
         # all fav_videos tags list
         favTags = []
 
@@ -66,10 +68,11 @@ def getFavList(userId, favBoxId):
         if jsonDoc['status'] == True:
             # if jsonDoc[]
             favList = jsonDoc['data']['tlist']
-            for j in favList:
-                # print j['tname'].encode('utf-8')
-                favTags.extend([j['name'].encode('utf-8'), str(j['count'])])
-            return favTags
+            if favList is not None:
+                for j in favList:
+                    # print j['tname'].encode('utf-8')
+                    favTags.extend([j['name'].encode('utf-8'), str(j['count'])])
+                return favTags
         else:
             print 'no video in this box for page...'
     else:
@@ -82,15 +85,23 @@ def readUsers(userTxt):
     # read all userId from file: userTxt, and return it
     with open(userTxt) as f:
         for i in f.readlines():
-            userList.append(i.rstrip('\n'))
+            userId = i.rstrip('\n').split(',')[1]
+
+            # append userId which is able to be hashed...
+            if userId != 'None':
+                userList.append(userId)
         return userList
 
 # write user fav tags to file: favTagFile
-def writeFavTags(userTxt, favTagFile):
-    userList = readUsers(userTxt)
+def writeFavTags(userTxtFile, favTagFile):
+    userList = readUsers(userTxtFile)
     fo = open(favTagFile, 'w')
     for user in userList:
+        if userList.index(user) < userList.index('847278'):
+            continue
+
         userFavTagSet = getVType(user)
+        # print user, userFavTagSet
 
         if userFavTagSet == None:
             continue
@@ -123,14 +134,15 @@ def analyFavTags(favTagFile):
 
 if __name__ == '__main__':
     userId = '24459450'
+    vCid = xmlDL.vCid
+    userTxt = 'data/users/' + vCid + '/userIdList.txt'
 
     # getFavList(userId, favBoxId)
 
-    userTxt = "10506396Users.txt"
-    print readUsers(userTxt)
+    # print readUsers(userTxt)
 
-    favTagFile = 'favTagTest2.txt'
-    # writeFavTags(userTxt, favTagFile)
+    favTagFile = 'data/users/' + vCid + '/favTagTList4.txt'
+    writeFavTags(userTxt, favTagFile)
 
     # used to analyze favTag1.txt
     tFav = 'favTagTlist1.txt'

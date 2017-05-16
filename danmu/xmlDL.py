@@ -12,11 +12,23 @@ import os
 import numpy as np
 from numpy import linalg as la
 import jieba
+import jieba.posseg as pseg
 import util
 
 comUrl = 'http://comment.bilibili.tv'
 currentTime = ''
 everyDayTime = ''
+
+# 10506396 大鱼海棠
+# 5114160 大圣归来
+# 1675077 西游降魔篇
+# 3876153 言叶之庭
+# 5061993 这个杀手不太冷
+# 4441226 伪装者01
+# 4523969 伪装者20
+# 9075603 青云志01
+# 9648652 青云志07
+vCid = '9648652'
 
 
 # wordList = util.getTxtList('data/highFreqWord/highFreqWord.txt')
@@ -46,7 +58,8 @@ def downloadBD(vCid):
     s = requests.get(bUrl)
     # print s.text
     jsonDoc = js.loads(s.text)
-    sum = 0
+    totalLen = len(jsonDoc)
+    print "--------------------the length of jsonDoc is:", totalLen
 
     # new a dir to store all barrage .xml data
     newDir(vCid)
@@ -66,19 +79,24 @@ def downloadBD(vCid):
             fo.write(ds.content)
             # print os.getcwd()
 
-        print i, "downloaded to local path...."
+        print jsonDoc.index(i), '/', totalLen, i, "downloaded to local..."
     print "json length: ", len(jsonDoc)
 
 def migrateBD(vCid):
-    print os.getcwd()
+    print 'migrateBD cwd:', os.getcwd()
     filePath = "../barrageData/" + vCid
     os.chdir(filePath)
     files = os.listdir(os.getcwd())
-    # print files, type(files),len(files)
+    # print files, type(files), len(files) # type = list
     barrageList = []
     ele = ''
     for file in files:
-        tree = ET.parse(file)
+        # print file
+        try:
+            tree = ET.parse(file)
+        except:
+            print file, "this file is not able to parse.."
+            continue
         for elem in tree.iter(tag = 'd'):
             pDataList = elem.attrib['p'].split(',')
             if type(elem.text) == unicode:
@@ -113,48 +131,77 @@ def divideSent(allBD):
     # the list of all divided barrages
     divBarrageList = []
 
-    wordList = util.getTxtList('data/highFreqWord/highFreqWord.txt')
+    wordList = util.getTxtList('/Users/admin/Summer/GradDesign/danmu/data/highFreqWord/highFreqWord.txt')
     nWordList = decodeList(wordList)
     if type(allBD) == list:
         length = len(allBD)
         for i in range(length):
             # print type(allBD[i][-1])
-            oneBarrageList = jieba.lcut(allBD[i][-1], cut_all = False)
-            n = len(oneBarrageList)
+            # oneBarrageList = jieba.lcut(allBD[i][-1], cut_all = False)
+            oneBarrageList_cut = pseg.cut(allBD[i][-1])
+            oneBarrageList = []
+            oneBarrageList = [word for word, flag in oneBarrageList_cut if flag == 'n']
+            # oneBarrageList = [word for word, flag in oneBarrageList_cut if flag == 'n' or flag == 'a']
+
+
+            # print 'after filter n & a:',
+            #
+            # # oneBarrageList = [word for word, flag in oneBarrageList_cut if flag == 'n' or flag == 'a']
+            # for j in oneBarrageList:
+            #     print j,
+            # print
+
             # remove word in wordList
             redWordL = set(oneBarrageList).intersection(set(nWordList))
-            # print 'len(redWordL)', len(redWordL)
-            oneBarrageList = list(set(oneBarrageList).difference(redWordL))
-            # print 'reduced words', n - len(oneBarrageList)
+            oneBarrageList2 = list(set(oneBarrageList).difference(redWordL))
 
-            # oneBarrageList = jieba.lcut(sentence, cut_all=False)
-            divBarrageList.append(oneBarrageList)
+            divBarrageList.append(oneBarrageList2)
     else:
         length = allBD.shape[0]
         for i in range(length):
-            n = len(oneBarrageList)
-            oneBarrageList = jieba.lcut(allBD[i, -1], cut_all = False)
+            # oneBarrageList = jieba.lcut(allBD[i, -1], cut_all = False)
+            oneBarrageList_cut = pseg.cut(allBD[i, -1])
+
+            oneBarrageList = []
+            # print type(oneBarrageList), type(oneBarrageList[0])
+            # for word, flag in oneBarrageList_cut:
+            #     if(flag == 'n' or flag == 'a'):
+            #         oneBarrageList.append(word)
+
+            oneBarrageList = [word for word, flag in oneBarrageList_cut if flag == 'n' or flag == 'a']
+
 
             # remove word in wordList
             redWordL = set(oneBarrageList).intersection(set(nWordList))
-            # print 'len(redWordL)', len(redWordL)
-            oneBarrageList = list(set(oneBarrageList).difference(redWordL))
-            # print 'reduced words', n - len(oneBarrageList)
+            oneBarrageList2 = list(set(oneBarrageList).difference(redWordL))
 
-
-            # oneBarrageList = jieba.lcut(sentence, cut_all=False)
-            divBarrageList.append(oneBarrageList)
+            divBarrageList.append(oneBarrageList2)
     # dblLen = len(divBarrageList)
     return divBarrageList
 
 
 
 if __name__ == '__main__':
-    vCid = '7182741'
+    start = time.time()
+
+    print '------------- processing ' + vCid + '-------------'
     downloadBD(vCid)
     # allBD = migrateBD(vCid)
-    # print len(allBD)
+    # res = divideSent(allBD)
     #
+    # mid = time.time()
+    # print "spend time half way: ", mid - start
+    #
+    # ss = 0
+    # for i in res:
+    #     for j in i:
+    #         print j,
+    #         if len(j) == 0:
+    #             ss += 1
+    #     print
+    # print ss, len(allBD), type(allBD)
+
+
     # userList = allBD[:, 6]
     # uniUsers = np.unique(userList)
     #
@@ -166,3 +213,6 @@ if __name__ == '__main__':
     #
     # print dblLen
     # print '-----', len(uniUsers), 'users -----'
+
+    end = time.time()
+    print "spend time: ", end - start

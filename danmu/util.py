@@ -8,6 +8,7 @@ import xmlDL
 import jieba
 import test
 import matplotlib.pyplot as plt
+import os
 
 jieba.load_userdict('data/jiebaNewWord/jiebaNewWord.txt')
 
@@ -43,24 +44,32 @@ def getTotalNumber():
 
 def hashTrans(strw):
     url = 'http://biliquery.typcn.com/api/user/hash/' + strw
-    r = requests.get(url)
+    try:
+        r = requests.get(url)
+    except:
+        return
     if r.status_code == 200:
         jsonDoc = js.loads(r.text)
         if jsonDoc['error'] == 0:
             return jsonDoc['data'][0]['id']
 
-def getUIdList():
-    userList = xmlDL.migrateBD()[:, 6]
+# write userIdList of 'vCid' to the file 'filePath'
+def writeUIdList(vCid, filePath):
+    userList = xmlDL.migrateBD(vCid)[:, 6]
     uniUsers = np.unique(userList)
-    # print uniUsers[12], type(uniUsers[13]), len(uniUsers)
+    print '---------totally', len(uniUsers), 'unique users in', vCid
     # print hashTrans(uniUsers[12])
 
-    fo = open("10506396Users.txt", "w")
+    if not os.path.exists(filePath):
+        os.mkdir(filePath)
+
+    fo = open(filePath + 'userIdList.txt', "w+")
     for i in range(len(uniUsers)):
         transUserId = hashTrans(uniUsers[i])
         print transUserId
         fo.write(uniUsers[i] + ',' + str(transUserId))
         fo.write('\n')
+    print '-----------all userIdList of', vCid ,'is downloaded to local'
 
 # get getUserCodeIdList
 # return a 2d list
@@ -130,17 +139,28 @@ def getSimilarity(wordList1, wordList2):
         sum1 += a ** 2
         sum2 += b ** 2
 
-    # print vec1
-    # print vec2
-    # print product, sum1, sum2
-
     if sum1 == 0 or sum2 == 0:
         return
     else:
         return float(product) / (sum1 ** 0.5 * sum2 ** 0.5)
 
+# get all favTagTlist*.txt files of a video
+def getFilesOfDir(vCid):
+    print os.getcwd()
+    filePath = 'data/users/' + vCid
+    os.chdir(filePath)
+    files = os.listdir(os.getcwd())
+    files = [f for f in files if f[0:6] == 'favTag']
+    os.chdir('../../../')
+
+    return files
+
 
 if __name__ == '__main__':
+    # 10506396
+    vCid = xmlDL.vCid
+
+    filePath = 'data/users/' + vCid + '/'
     # getTotalNumber()
 
     wordList1 = jieba.lcut('我觉得这个世界全怕猫。猫吃鱼也吃老鼠', cut_all=False)
@@ -149,13 +169,23 @@ if __name__ == '__main__':
     list1 = [1, 4, 1, 4, 9, 2]
     array1 = np.array(list1)
     array2 = np.arange(0, 10)
-    res = matchedCurve(array1)
+    # res = matchedCurve(array1)
     # print res(2), res(2.5)
-    plt.plot(array2, res(array2), 'b')
-    plt.show()
+    # plt.plot(array2, res(array2), 'b')
+    # plt.show()
+
+    # print getFilesOfDir(vCid)
+
+
+    writeUIdList(vCid, filePath)
 
 
 
 
 
-    # getUIdList()
+
+
+
+
+
+    # end

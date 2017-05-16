@@ -6,8 +6,9 @@ from mpl_toolkits.mplot3d import Axes3D
 from sklearn import datasets
 from sklearn.cluster import KMeans
 import time
+import util
 
-favTagTlist = ["favTagTlist1.txt", "favTagTlist2.txt", "favTagTlist3.txt", "favTagTlist4.txt"]
+import xmlDL
 
 # get a single line of tag data of userId
 # userId: user0
@@ -39,6 +40,7 @@ def scanAllTags(favTagTlist):
     userList = []
     catAll = []
     for i in favTagTlist:
+        print i
         with open(i) as f:
             for j in f.readlines():
                 line = j.rstrip(',\n')
@@ -92,10 +94,18 @@ def getArrayMatrix(listMatrix, userFavTagVNumList, catList):
 
 if __name__ == "__main__":
     start = time.time()
+
+    vCid = xmlDL.vCid
+    favTagTlist = util.getFilesOfDir(vCid)
+    favTagTlist = ['/Users/admin/Summer/GradDesign/danmu/data/users/' + vCid + '/' + tagT for tagT in favTagTlist]
     tagMatrix, tagVNumMatrix, userList, catAll = scanAllTags(favTagTlist)
 
-
     print tagMatrix, '\n', tagVNumMatrix, tagMatrix.shape, tagVNumMatrix.shape
+    print len(catAll)
+    for i in catAll:
+        print i
+
+
 
     end = time.time()
     print 'cost', end - start, 'seconds --------------'

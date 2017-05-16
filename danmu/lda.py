@@ -4,25 +4,25 @@ from gensim import corpora, models, similarities
 import matplotlib.pyplot as plt
 import time
 import numpy as np
+import os
+import sys
 
 import xmlDL
 import util
 import clustering
 
-userCodeIdListFilePath = "10506396Users.txt"
-favTagTlist = ["favTagTlist1.txt", "favTagTlist2.txt", "favTagTlist3.txt", "favTagTlist4.txt"]
 
-
-# return the topic type with max posibility and the posibility of a
-# eg: a--[(0, 0.033333333333334041), (1, 0.033333333333659149), (2, 0.03333333333337106), (3, 0.033333333333336511), (4, 0.033333333333333631), (5, 0.033333333577374141), (6, 0.033333333333333381), (7, 0.53333330176939997), (8, 0.033333333641347308), (9, 0.033333333333333388), (10, 0.033333333333333409), (11, 0.033333358397907714), (12, 0.033333333333333381), (13, 0.033333333333333368), (14, 0.033333339280269603)]
-def getMax(a):
+# return the topic type with max posibility and the posibility of doc
+# eg: doc--[(0, 0.033333333333334041), (1, 0.033333333333659149), (2, 0.03333333333337106), (3, 0.033333333333336511), (4, 0.033333333333333631), (5, 0.033333333577374141), (6, 0.033333333333333381), (7, 0.53333330176939997), (8, 0.033333333641347308), (9, 0.033333333333333388), (10, 0.033333333333333409), (11, 0.033333358397907714), (12, 0.033333333333333381), (13, 0.033333333333333368), (14, 0.033333339280269603)]
+def getMax(doc):
     b = []
-    b = [i[1] for i in a]
+    b = [i[1] for i in doc]
     return b.index(max(b)), max(b)
 
 # return a length of unique users and their barrage
 # return 2 arguments, userList and related barrageList
 # eg: uniBContentList: ['user', ['b1', 'b2', 'b3']]
+# eg: uniBContentList2: ['user1', 'b1'], ['user1', 'b2']....
 # eg: uniBContentListString: ['22ccd704', '\xe7\x88\xb7\xe7\x88\xb7QAQ']
 def getUserAndBarrageList(barrageList):
     # duplicate users list
@@ -32,6 +32,7 @@ def getUserAndBarrageList(barrageList):
     print len(dupUList), len(uniUList)
 
     uniBContentList = []
+    uniBContentList2 = []
     uniBContentListString = []
 
     # bNumPerUser[0]: the number of barrage comments of user 0
@@ -43,6 +44,7 @@ def getUserAndBarrageList(barrageList):
         bContentList = []
         for bContentIndex in user2BList:
             bContentList.append(barrageList[bContentIndex][-1])
+            uniBContentList2.append([user, barrageList[bContentIndex][-1]])
 
         # 1st
         # all barrage comments sent by one user
@@ -53,7 +55,7 @@ def getUserAndBarrageList(barrageList):
 
     # for i in range(len(uniUList)):
     #     print uniBContentList[i]
-    return uniBContentList, uniBContentListString, bNumPerUser
+    return uniBContentList, uniBContentList2, uniBContentListString, bNumPerUser
 
 # bNumPerUser: [('a', 2), ('b', 3), ('c', 1)]
 def UBdistribution(bNumPerUser):
@@ -86,16 +88,12 @@ def UBdistribution(bNumPerUser):
 def removeBLessNum(uniBContentListString, bNumPerUser, lessNum):
     bNumMoreUserL = [i[0] for i in bNumPerUser if i[1] >= lessNum]
     print len(bNumMoreUserL), len(uniBContentListString)
-    initial = 0
-    initial2 = 0
-    initial3 = 0
 
     # print len(set(bNumMoreUserL).intersection(set(uniBContentListString)))
     # print set(bNumMoreUserL).intersection(set(uniBContentListString))
 
-
-    u1 = uniBContentListString[0:10000]
-    u2 = uniBContentListString[10001:len(uniBContentListString)-1]
+    u1 = uniBContentListString[0:len(uniBContentListString)-1]
+    # u2 = uniBContentListString[10001:len(uniBContentListString)-1]
     for i in u1:
         try:
             if i[0] in bNumMoreUserL:
@@ -105,18 +103,14 @@ def removeBLessNum(uniBContentListString, bNumPerUser, lessNum):
                 uniBContentListString.remove(i)
         except:
             continue
-    for i in u2:
-        if i[0] in bNumMoreUserL:
-            continue
-        else:
-            # print i[0], len(i[1]), i[1]
-            uniBContentListString.remove(i)
+    # for i in u2:
+    #     if i[0] in bNumMoreUserL:
+    #         continue
+    #     else:
+    #         # print i[0], len(i[1]), i[1]
+    #         uniBContentListString.remove(i)
 
     print len(uniBContentListString)
-    # for i in uniBContentListString:
-    #     print len(i[1]), i[1]
-    #     if len(i[1]) < 3:
-    #         print i
     return uniBContentListString
 
 # get word appearing most in barrage comments
@@ -139,14 +133,36 @@ def getMostWord(bContentList, num):
 
 
 def ldaa(vCid, topicNum):
+    print 'current working directory:', os.getcwd()
     bList = xmlDL.migrateBD(vCid)
 
     # eg: uniBContentList: ['user', ['b1', 'b2', 'b3']]
+    # eg: uniBContentList2: ['user1', 'b1'], ['user1', 'b2']....
     # eg: uniBContentListString: ['22ccd704', '\xe7\x88\xb7\xe7\x88\xb7QAQ']
-    uniBContentList, uniBContentListString, bNumPerUser = getUserAndBarrageList(bList)
+    uniBContentList, uniBContentList2, uniBContentListString, bNumPerUser = getUserAndBarrageList(bList)
 
-    newUniBContentListString = removeBLessNum(uniBContentListString, bNumPerUser, 3)
+    # list of a user's total barrage
+    # newUniBContentListString = removeBLessNum(uniBContentListString, bNumPerUser, 3)
+
+    # list of a user's one barrage
+    newUniBContentListString = removeBLessNum(uniBContentList2, bNumPerUser, 3)
+
     bContentList = xmlDL.divideSent(newUniBContentListString)
+
+    # remove barrage comments which have no N or A
+    print len(bContentList), len(newUniBContentListString)
+    for bContentI in range(len(bContentList)):
+        try:
+            if len(bContentList[bContentI]) == 0:
+                # bContentList.remove(bContentList[bContentI])
+                # newUniBContentListString.remove(newUniBContentListString[bContentI])
+                del bContentList[bContentI]
+                del newUniBContentListString[bContentI]
+        except:
+            continue
+    print len(bContentList), len(newUniBContentListString)
+
+    # sys.exit(0)
 
     # print '---newUniBContentListString', newUniBContentListString[3][1], newUniBContentListString[10][1]
     # print '---bContentList', bContentList[3], bContentList[10]
@@ -164,7 +180,7 @@ def ldaa(vCid, topicNum):
     # for word, index in dic.token2id.iteritems():
     #     word = word.encode('utf-8')
     #     print word, index
-    print dic.num_docs, dic.num_pos, len(dic)
+    print 'dictionary number of docs, num_pos, number of terms: ', dic.num_docs, dic.num_pos, len(dic)
 
     # text corpus
     corpus = [dic.doc2bow(text) for text in bContentList]
@@ -175,7 +191,7 @@ def ldaa(vCid, topicNum):
     example = [(0, 1), (2, 1)]
     print tfidf[example]
     for word, index in dic.token2id.iteritems():
-        if index == 3 or index == 0:
+        if index == 4 or index == 0:
             word = word.encode('utf-8')
             print word, index
 
@@ -186,12 +202,39 @@ def ldaa(vCid, topicNum):
     # print type(examSims)
 
     corpus_tfidf = tfidf[corpus]
+
+    print '------------------type(corpus_tfidf):', type(corpus_tfidf)
     # for i in corpus_tfidf:
     #     print i
 
-
     lda = models.LdaModel(corpus_tfidf, id2word=dic, num_topics=topicNum)
     ldaOut = lda.print_topics(topicNum)
+
+
+    li = 5
+    vec = [(0, 1), (4, 1)]
+    vec = dic.doc2bow(bContentList[li])
+
+    # get similarity matrix of len(bContentList) * len(bContentList)
+    index = similarities.MatrixSimilarity(lda[corpus])
+    simMatrix = []
+
+    # get the Similarity Matrix(eg: 100 * 100) of all barrages,
+    for bIndex in range(len(bContentList)):
+        vec = bContentList[bIndex]
+        vec_bow = dic.doc2bow(bContentList[bIndex])
+        vec_lda = lda[vec_bow]
+        sims = index[vec_lda]
+
+        # print list(enumerate(sims))
+
+        # sorted with similarity from high to low
+        # sims = sorted(enumerate(sims), key=lambda item: -item[1])
+        # print sims, len(sims), type(sims)
+
+        simMatrix.append(list(enumerate(sims)))
+    # print len(simMatrix), simMatrix[1]
+
 
     # print all lda topics words
     # such as:
@@ -203,10 +246,11 @@ def ldaa(vCid, topicNum):
     for i in ldaOut:
         r = i[1]
         r = r.encode('utf-8')
-        print r
+        print r, type(r)
+    # sys.exit()
 
     print type(ldaOut[0])
-    print type(ldaOut[1][1])
+    print type(ldaOut[0][0])
 
     corpus_lda = lda[corpus_tfidf]
     resList = []
@@ -220,6 +264,77 @@ def ldaa(vCid, topicNum):
     print '---type(corpus_tfidf), type(corpus_lda)', type(corpus_tfidf), type(corpus_lda)
     print '---len(resList)', len(resList)
 
+    # len = topicNum
+    simMatrixTopicList = []
+    for topicId in range(topicNum):
+        simMatrixTopic = [i for i in range(len(resList)) if resList[i][0] == topicId]
+        print topicId, 'topic has:', len(simMatrixTopic), 'barrage'
+        simMatrixTopicList.append(simMatrixTopic)
+        # print len(simMatrixTopic), simMatrixTopic
+
+    # inner distance
+    iRow = 0.0
+    num = 0
+    innDisMatrix = [0.0 for i in range(topicNum)]
+    for topicId in range(topicNum):
+        for i in range(len(simMatrixTopicList[topicId])-1):
+            for j in range(i+1, len(simMatrixTopicList[topicId])):
+                # print simMatrix[simMatrixTopicList[topicId][i]][simMatrixTopicList[topicId][j]][1]
+                iRow += simMatrix[simMatrixTopicList[topicId][i]][simMatrixTopicList[topicId][j]][1]
+            # print topicId, 'topic, num:', num
+        lenOfIRow = len(simMatrixTopicList[topicId])
+        numOfIRow = (lenOfIRow + 1) * lenOfIRow / 2
+        innDisMatrix[topicId] = iRow/numOfIRow
+        iRow = 0.0
+    print 'inner distance:', innDisMatrix
+
+    aveInnDis = sum(innDisMatrix) / len(innDisMatrix)
+    print 'average inner distance:', aveInnDis
+
+    # sys.exit()
+
+
+    # external distance
+    cols = topicNum
+    rows = topicNum
+    extDisMatrix = [[0.0 for col in range(cols)] for row in range(rows)]
+    iRow = 0.0
+    for topicId in range(topicNum):
+        for ti2 in range(topicId+1, topicNum):
+            for i in range(len(simMatrixTopicList[topicId])):
+                for j in range(len(simMatrixTopicList[ti2])):
+                    iRow += simMatrix[simMatrixTopicList[topicId][i]][simMatrixTopicList[ti2][j]][1]
+                # iRow += iRow
+            # print iRow
+            lenOfIRow = len(simMatrixTopicList[topicId]) * len(simMatrixTopicList[ti2])
+            extDisMatrix[topicId][ti2] = iRow / float(lenOfIRow)
+            iRow = 0.0
+
+    print 'external distance:', extDisMatrix
+
+    totExtDis = 0
+    aveExtDis = 0
+    num = 0
+    for i in extDisMatrix:
+        for j in i:
+            if j != 0:
+                totExtDis += j
+                num += 1
+    aveExtDis = totExtDis / float(num)
+
+    print 'average external distance:', aveExtDis
+    print 'inner/external value:', aveInnDis/aveExtDis
+
+
+
+
+
+
+
+
+    # sys.exit()
+
+
     topicPosi = []
     for topicId in range(topicNum):
         posiList = [i[1] for i in resList if i[0] == topicId]
@@ -228,7 +343,25 @@ def ldaa(vCid, topicNum):
         possi = sum(posiList)/len(posiList)
         topicPosi.append(possi)
 
-    catNum = 15
+    # sys.exit(0)
+
+    fullPath = os.getcwd()
+
+    # concatenate full path
+    userCodeIdListFilePath = fullPath + '/data/users/' + vCid + '/userIdList.txt'
+    userCodeIdList = util.getUserCodeIdList(userCodeIdListFilePath)
+    # for i in userCodeIdList:
+    #     print i
+
+    favTagTlist = util.getFilesOfDir(vCid)
+
+    # concatenate full path
+    favTagTlist = [fullPath + '/data/users/' + vCid + '/' + tagT for tagT in favTagTlist]
+    for i in favTagTlist:
+        print i
+    tagMatrix, tagVNumMatrix, userList, catAll = clustering.scanAllTags(favTagTlist)
+
+    catNum = len(catAll)
 
     # eg: topicDist =
     # [[125.  126.   83.   18.  121.   44.   72.    0.  108.  113.   46.   66.  114.    0.  109.],
@@ -243,18 +376,18 @@ def ldaa(vCid, topicNum):
 
     topicDistNoneNum = np.zeros(topicNum)
     userIdNoneNum = 0
-    userCodeIdList = util.getUserCodeIdList(userCodeIdListFilePath)
-    # for i in userCodeIdList:
-    #     print i
-
-    tagMatrix, tagVNumMatrix, userList, catAll = clustering.scanAllTags(favTagTlist)
 
     # topic index list: [0, 1, 2, 3, 4]
     topicNumList = range(topicNum)
+
+    # a list of: all users' barrage data of a topic
     aTopicNewUniBContentListString = []
-    topicUserNumList = [0, 0, 0, 0]
+    topicUserNumList = []
+
     for i in topicNumList:
         aTopicNewUniBContentListString.append([])
+        topicUserNumList.append(0)
+
     for i in range(len(resList)):
         # print i
         topicId = resList[i][0]
@@ -274,6 +407,7 @@ def ldaa(vCid, topicNum):
                     continue
 
                 if tagLineOfUI is not None:
+                    # print len(tagLineOfUI), userId, tagLineOfUI
                     topicDist[topicId] += tagLineOfUI
 
                     # the perc distribution of tagVideo number of a user
@@ -287,14 +421,14 @@ def ldaa(vCid, topicNum):
     # for i in topicDist:
     #     print i
     for i in topicNumList:
+        print '------------topic', i, '-------------users:', topicUserNumList
         bContentList = xmlDL.divideSent(aTopicNewUniBContentListString[i])
         wordList = getMostWord(bContentList, 20)
-        for j in wordList:
-            print j[0], j[1]
-        print type(aTopicNewUniBContentListString[i])
+        # for j in wordList:
+        #     print j[0], j[1]
+
         for j in aTopicNewUniBContentListString[i]:
             print j[0], j[1]
-        print '-------------------------'
 
     print 'the num of users of different topics:', topicUserNumList
     print 'the num of users who is not in userCodeIdList:', userIdNoneNum
@@ -342,15 +476,56 @@ def ldaa(vCid, topicNum):
 
     # plt.show()
 
+    return 1/aveInnDis, 1/aveExtDis
+
 
 
 if __name__ == '__main__':
     start = time.time()
 
-    vCid = "10506396"
-    # for i in range(3, 7):
-    #     ldaa(vCid, i)
-    ldaa(vCid, 4)
+    # 10506396
+    vCid = xmlDL.vCid
+
+    res1 = []
+    res2 = []
+    res3 = []
+    # for i in range(3, 15):
+    #     rr, bb = ldaa(vCid, i)
+    #     res1.append(rr)
+    #     res2.append(bb)
+    #     res3.append(rr/bb)
+    # print res1, res2, res3
+    ldaa(vCid, 10)
+
+    # res1 = [1.0524856030567495, 1.0633693280876479, 1.0524856030567495, 1.0633693280876479]
+    # res2 = [1.7148415205679695, 2.0331786557644111, 3.0524856030567495, 4.0633693280876479]
+    # res3 = [0.61375094458183965, 0.52300830774158136, 5.0524856030567495, 1.0633693280876479]
+
+    # res1 = [1.0536764566835712, 1.0617300379997179, 1.0678292753331489, 1.0843669639287428, 1.0901584860513163, 1.0949943152153629, 1.0974523114443733, 1.0916883894929417, 1.1023611448884925, 1.109015211546823, 1.1134719136436293, 1.1052127030191337]
+    # res2 = [1.690701968280315, 2.0350923498288953, 2.3313657375305334, 2.6190029210480317, 2.8995538803459144, 3.1553686897335864, 3.4810853035099627, 3.7567911588778493, 4.0663518095401878, 4.3141086286793247, 4.6675958115718323, 5.0051861828895072]
+    # res3 = [0.62321832969491986, 0.52171098677118266, 0.45802735201222955, 0.41403808877571535, 0.37597455713472078, 0.34702579092518515, 0.3152615393646967, 0.29059065125649097, 0.27109340178147168, 0.25706705764762466, 0.23855362773338828, 0.22081350475979525]
+    # plt.figure(1)
+    # plt.subplot(311)
+    # plt.plot(res1, 'r')
+    # plt.xlabel("Topic Number")
+    # plt.ylabel("Inner Distance")
+    #
+    # plt.subplot(312)
+    # plt.plot(res2, 'g')
+    # plt.xlabel("Topic Number")
+    # plt.ylabel("External Distance")
+    #
+    # plt.subplot(313)
+    # plt.plot(res3, 'b')
+    # plt.xlabel("Topic Number")
+    # plt.ylabel("Inner/External Distance")
+    # plt.show()
+
+    # print avePossValueL
+    # ldaa(vCid, 7)
+
+
+
 
 
     # bList = xmlDL.migrateBD()
