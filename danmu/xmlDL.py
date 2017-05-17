@@ -15,6 +15,11 @@ import jieba
 import jieba.posseg as pseg
 import util
 
+# all words should be added
+jieba.load_userdict('data/jiebaNewWord/jiebaNewWord.txt')
+# jieba.load_userdict('data/jiebaNewWord/jiebaNewWord_Qingyunzhi.txt')
+
+
 comUrl = 'http://comment.bilibili.tv'
 currentTime = ''
 everyDayTime = ''
@@ -30,18 +35,12 @@ everyDayTime = ''
 # 9648652 青云志07
 vCid = '9648652'
 
-
-# wordList = util.getTxtList('data/highFreqWord/highFreqWord.txt')
-# nWordList = []
-# for i in wordList:
-#     w = unicode(i, "utf-8")
-#     nWordList.append(w)
 def decodeList(wordList):
-    nWordList = []
+    highFreqWordList = []
     for i in wordList:
         w = unicode(i, "utf-8")
-        nWordList.append(w)
-    return nWordList
+        highFreqWordList.append(w)
+    return highFreqWordList
 
 def buildUrl(cid):
     return '/'.join([comUrl, cid]).join('.xml')
@@ -131,51 +130,57 @@ def divideSent(allBD):
     # the list of all divided barrages
     divBarrageList = []
 
-    wordList = util.getTxtList('/Users/admin/Summer/GradDesign/danmu/data/highFreqWord/highFreqWord.txt')
-    nWordList = decodeList(wordList)
+    # all words should be deleted
+    highFreqWords = util.getTxtList('/Users/admin/Summer/GradDesign/danmu/data/highFreqWord/highFreqWords.txt')
+    stopWords = util.getTxtList('/Users/admin/Summer/GradDesign/danmu/data/stopWord/stopWords.txt')
+    newWordsQingyunzhi = util.getTxtList('data/stopWord/jiebaNewWord_Qingyunzhi.txt')
+    # newWordsQingyunzhi = []
+
+    highFreqWordList = decodeList(highFreqWords)
+    stopWordList = decodeList(stopWords)
+    newWordsQingyunzhiList = decodeList(newWordsQingyunzhi)
+
+    # length = type(allBD) == list ? len(allBD):allBD.shape[0]
     if type(allBD) == list:
         length = len(allBD)
-        for i in range(length):
-            # print type(allBD[i][-1])
-            # oneBarrageList = jieba.lcut(allBD[i][-1], cut_all = False)
-            oneBarrageList_cut = pseg.cut(allBD[i][-1])
-            oneBarrageList = []
-            oneBarrageList = [word for word, flag in oneBarrageList_cut if flag == 'n']
-            # oneBarrageList = [word for word, flag in oneBarrageList_cut if flag == 'n' or flag == 'a']
-
-
-            # print 'after filter n & a:',
-            #
-            # # oneBarrageList = [word for word, flag in oneBarrageList_cut if flag == 'n' or flag == 'a']
-            # for j in oneBarrageList:
-            #     print j,
-            # print
-
-            # remove word in wordList
-            redWordL = set(oneBarrageList).intersection(set(nWordList))
-            oneBarrageList2 = list(set(oneBarrageList).difference(redWordL))
-
-            divBarrageList.append(oneBarrageList2)
     else:
         length = allBD.shape[0]
-        for i in range(length):
-            # oneBarrageList = jieba.lcut(allBD[i, -1], cut_all = False)
+
+    for i in range(length):
+        # oneBarrageList = jieba.lcut(allBD[i][-1], cut_all = False)
+        if type(allBD) == list:
+            oneBarrageList_cut = pseg.cut(allBD[i][-1])
+        else:
             oneBarrageList_cut = pseg.cut(allBD[i, -1])
 
-            oneBarrageList = []
-            # print type(oneBarrageList), type(oneBarrageList[0])
-            # for word, flag in oneBarrageList_cut:
-            #     if(flag == 'n' or flag == 'a'):
-            #         oneBarrageList.append(word)
+        oneBarrageList = []
 
-            oneBarrageList = [word for word, flag in oneBarrageList_cut if flag == 'n' or flag == 'a']
+        # type(oneBarrageList_cut) == generator
+        oneBarrageList = [word for word, flag in oneBarrageList_cut if flag == 'n']
+        # oneBarrageList = [word for word, flag in oneBarrageList_cut if flag == 'n' or flag == 'a']
 
+        # remove word in highFreqWords
+        # remove word in highFreqWords
+        redWordL = list((set(highFreqWordList).union(set(stopWordList))).union(set(newWordsQingyunzhiList)))
 
-            # remove word in wordList
-            redWordL = set(oneBarrageList).intersection(set(nWordList))
-            oneBarrageList2 = list(set(oneBarrageList).difference(redWordL))
+        # for i in range(len(redWordL)):
+        #     print redWordL[i]
+            # if isinstance(redWordL[i], str):
+            #     redWordL[i] = unicode(redWordL[i], 'utf-8')
 
-            divBarrageList.append(oneBarrageList2)
+        lenB = len(oneBarrageList)
+        for i in range(lenB):
+            # print lenB, i
+            if i >= lenB:
+                break
+            # if oneBarrageList[i].encode('utf-8') == '逸才':
+            #     print 'now is', oneBarrageList[i], type(oneBarrageList[i])
+            if oneBarrageList[i] in redWordL:
+                # print 'deleted....', oneBarrageList[i]
+                del oneBarrageList[i]
+                lenB -= 1
+
+        divBarrageList.append(oneBarrageList)
     # dblLen = len(divBarrageList)
     return divBarrageList
 
@@ -185,9 +190,11 @@ if __name__ == '__main__':
     start = time.time()
 
     print '------------- processing ' + vCid + '-------------'
-    downloadBD(vCid)
-    # allBD = migrateBD(vCid)
-    # res = divideSent(allBD)
+    for i in range(0):
+        print i
+    # downloadBD(vCid)
+    allBD = migrateBD(vCid)
+    res = divideSent(allBD)
     #
     # mid = time.time()
     # print "spend time half way: ", mid - start
