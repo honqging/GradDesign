@@ -44,7 +44,7 @@ def getUserAndBarrageList(barrageList):
         bContentList = []
         for bContentIndex in user2BList:
             bContentList.append(barrageList[bContentIndex][-1])
-            uniBContentList2.append([user, barrageList[bContentIndex][-1]])
+            uniBContentList2.append([user, barrageList[bContentIndex][0], barrageList[bContentIndex][-1]])
 
         # 1st
         # all barrage comments sent by one user
@@ -92,7 +92,7 @@ def removeBLessNum(uniBContentListString, bNumPerUser, lessNum):
     # print len(set(bNumMoreUserL).intersection(set(uniBContentListString)))
     # print set(bNumMoreUserL).intersection(set(uniBContentListString))
 
-    u1 = uniBContentListString[0:len(uniBContentListString)-1]
+    u1 = uniBContentListString[0:len(uniBContentListString)]
     # u2 = uniBContentListString[10001:len(uniBContentListString)-1]
     for i in u1:
         try:
@@ -110,7 +110,6 @@ def removeBLessNum(uniBContentListString, bNumPerUser, lessNum):
     #         # print i[0], len(i[1]), i[1]
     #         uniBContentListString.remove(i)
 
-    print len(uniBContentListString)
     return uniBContentListString
 
 # get word appearing most in barrage comments
@@ -130,14 +129,19 @@ def getMostWord(bContentList, num):
 
     return xx[0:num] if len(xx) > num else xx
 
+# input: 0.002*"合影" + 0.002*"钱" + 0.002*"撒花" + 0.002*"没" + 0.002*"完结" + 0.002*"看" + 0.002*"啊" + 0.002*"之" + 0.002*"湫" + 0.002*"一个"
+# output: "合影" + "钱" + "撒花"....
+def rmNum(ldaOutLine):
+    splitRes = ldaOutLine.split('"')
+    res = splitRes[1::2]
+    return res
 
-
-def ldaa(vCid, topicNum):
-    print 'current working directory:', os.getcwd()
+# return dic, corpus, tfidf based on the barrage of vCid
+def preLda(vCid):
     bList = xmlDL.migrateBD(vCid)
 
     # eg: uniBContentList: ['user', ['b1', 'b2', 'b3']]
-    # eg: uniBContentList2: ['user1', 'b1'], ['user1', 'b2']....
+    # eg: uniBContentList2: ['user1', '157.430', 'b1'], ['user1', '159.430', 'b2']....
     # eg: uniBContentListString: ['22ccd704', '\xe7\x88\xb7\xe7\x88\xb7QAQ']
     uniBContentList, uniBContentList2, uniBContentListString, bNumPerUser = getUserAndBarrageList(bList)
 
@@ -147,7 +151,7 @@ def ldaa(vCid, topicNum):
     # list of a user's one barrage
     newUniBContentListString = removeBLessNum(uniBContentList2, bNumPerUser, 3)
 
-    bContentList = xmlDL.divideSent(newUniBContentListString)
+    bContentList = xmlDL.divideSent(newUniBContentListString, 1)
 
     # remove barrage comments which have no N or A
     print len(bContentList), len(newUniBContentListString)
@@ -162,15 +166,10 @@ def ldaa(vCid, topicNum):
             continue
     print len(bContentList), len(newUniBContentListString)
 
-    # sys.exit(0)
-
-    # print '---newUniBContentListString', newUniBContentListString[3][1], newUniBContentListString[10][1]
+    print '---newUniBContentListString', newUniBContentListString[3][0], newUniBContentListString[10][1], newUniBContentListString[10][2]
     # print '---bContentList', bContentList[3], bContentList[10]
 
-
-
-
-
+    # sys.exit()
 
     # 276088 words tatally
     # 17941 unique words
@@ -194,15 +193,11 @@ def ldaa(vCid, topicNum):
         if index == 4 or index == 0:
             word = word.encode('utf-8')
             print word, index
+    return dic, corpus, tfidf, bContentList, newUniBContentListString
 
-    # calculate similarities
-    # index = similarities.SparseMatrixSimilarity(tfidf[corpus], num_features=topicNum)
-    # sims = index[tfidf[example]]
-    # print list(enumerate(sims))
-    # print type(examSims)
 
+def ldaa(dic, corpus, tfidf, bContentList, newUniBContentListString, topicNum):
     corpus_tfidf = tfidf[corpus]
-
     print '------------------type(corpus_tfidf):', type(corpus_tfidf)
     # for i in corpus_tfidf:
     #     print i
@@ -233,7 +228,10 @@ def ldaa(vCid, topicNum):
         # print sims, len(sims), type(sims)
 
         simMatrix.append(list(enumerate(sims)))
+
+    # eg: simMatrix[1] = [(0, 0.91061151), (1, 0.99999994), (2, 0.99999994), (3, 0.99999994), (4, 0.73748994), (5, 0.81874228)......]
     # print len(simMatrix), simMatrix[1]
+    # sys.exit()
 
 
     # print all lda topics words
@@ -244,9 +242,14 @@ def ldaa(vCid, topicNum):
     # 0.003*"完结" + 0.003*"撒花" + 0.003*"钱" + 0.003*"合影" + 0.002*"再见" + 0.002*"没" + 0.002*"啊" + 0.002*"湫" + 0.002*"好" + 0.001*"第一次"
     # 0.003*"存活" + 0.003*"确认" + 0.002*"合影" + 0.002*"没" + 0.002*"钱" + 0.002*"秋水共长天一色" + 0.002*"第一次" + 0.001*"靠" + 0.001*"也" + 0.001*"生日"
     for i in ldaOut:
-        r = i[1]
-        r = r.encode('utf-8')
-        print r, type(r)
+        r = i[1].encode('utf-8')
+        print r
+
+    for i in ldaOut:
+        r = i[1].encode('utf-8')
+        print 'Topic', ldaOut.index(i), ':',
+        util.printList(rmNum(r))
+
     # sys.exit()
 
     print type(ldaOut[0])
@@ -272,58 +275,135 @@ def ldaa(vCid, topicNum):
         simMatrixTopicList.append(simMatrixTopic)
         # print len(simMatrixTopic), simMatrixTopic
 
+
+
+    # without square
+    # # inner distance
+    # # sum of all similarity of i'th row
+    # iRow = 0.0
+    # num = 0
+    # innDisMatrix = [0.0 for i in range(topicNum)]
+    # for topicId in range(topicNum):
+    #     for i in range(len(simMatrixTopicList[topicId])-1):
+    #         for j in range(i+1, len(simMatrixTopicList[topicId])):
+    #             # print simMatrix[simMatrixTopicList[topicId][i]][simMatrixTopicList[topicId][j]][1]
+    #             iRow += simMatrix[simMatrixTopicList[topicId][i]][simMatrixTopicList[topicId][j]][1]
+    #         # print topicId, 'topic, num:', num
+    #     lenOfIRow = len(simMatrixTopicList[topicId])
+    #     numOfIRow = (1 + lenOfIRow - 1) * (lenOfIRow - 1) / 2
+    #     innDisMatrix[topicId] = iRow/numOfIRow
+    #     iRow = 0.0
+    # print 'inner distance:', innDisMatrix
+    #
+    # aveInnDis = sum(innDisMatrix) / len(innDisMatrix)
+    # print 'average inner distance:', aveInnDis
+    #
+    # # external distance
+    # cols = topicNum
+    # rows = topicNum
+    # extDisMatrix = [[0.0 for col in range(cols)] for row in range(rows)]
+    # iRow = 0.0
+    # for topicId in range(topicNum):
+    #     for ti2 in range(topicId+1, topicNum):
+    #         for i in range(len(simMatrixTopicList[topicId])):
+    #             for j in range(len(simMatrixTopicList[ti2])):
+    #                 iRow += simMatrix[simMatrixTopicList[topicId][i]][simMatrixTopicList[ti2][j]][1]
+    #             # iRow += iRow
+    #         # print iRow
+    #         lenOfIRow = len(simMatrixTopicList[topicId]) * len(simMatrixTopicList[ti2])
+    #         extDisMatrix[topicId][ti2] = iRow / float(lenOfIRow)
+    #         iRow = 0.0
+    #
+    # print 'external distance:', extDisMatrix
+    #
+    # totExtDis = 0
+    # aveExtDis = 0
+    # num = 0
+    # for i in extDisMatrix:
+    #     for j in i:
+    #         if j != 0:
+    #             totExtDis += j
+    #             num += 1
+    # aveExtDis = totExtDis / float(num)
+    #
+    # print 'average external distance:', aveExtDis
+    # print 'inner/external value:', aveInnDis/aveExtDis
+
+
+
+
+    # within square(**2)
+
     # inner distance
+    # sum of all similarity of i'th row
     iRow = 0.0
     num = 0
     innDisMatrix = [0.0 for i in range(topicNum)]
+
+    # innDisMatrixNum[0]: the number of similarity value every topic
+    innDisMatrixNum = [0.0 for i in range(topicNum)]
     for topicId in range(topicNum):
         for i in range(len(simMatrixTopicList[topicId])-1):
             for j in range(i+1, len(simMatrixTopicList[topicId])):
-                # print simMatrix[simMatrixTopicList[topicId][i]][simMatrixTopicList[topicId][j]][1]
-                iRow += simMatrix[simMatrixTopicList[topicId][i]][simMatrixTopicList[topicId][j]][1]
+                iRow += (simMatrix[simMatrixTopicList[topicId][i]][simMatrixTopicList[topicId][j]][1]) ** 2
             # print topicId, 'topic, num:', num
         lenOfIRow = len(simMatrixTopicList[topicId])
-        numOfIRow = (lenOfIRow + 1) * lenOfIRow / 2
+        numOfIRow = (1 + lenOfIRow - 1) * (lenOfIRow - 1) / 2
         innDisMatrix[topicId] = iRow/numOfIRow
+        # innDisMatrixNum[topicId] = numOfIRow
         iRow = 0.0
     print 'inner distance:', innDisMatrix
 
-    aveInnDis = sum(innDisMatrix) / len(innDisMatrix)
+    aveInnDis = 1/(sum(innDisMatrix)/topicNum)
     print 'average inner distance:', aveInnDis
-
-    # sys.exit()
-
 
     # external distance
     cols = topicNum
     rows = topicNum
     extDisMatrix = [[0.0 for col in range(cols)] for row in range(rows)]
+
+    # extDisMatrixNum[0]: the number of similarity value every topic
+    # extDisMatrixNum = [[0.0 for col in range(cols)] for row in range(rows)]
     iRow = 0.0
+    # countt = 0
     for topicId in range(topicNum):
         for ti2 in range(topicId+1, topicNum):
             for i in range(len(simMatrixTopicList[topicId])):
                 for j in range(len(simMatrixTopicList[ti2])):
-                    iRow += simMatrix[simMatrixTopicList[topicId][i]][simMatrixTopicList[ti2][j]][1]
-                # iRow += iRow
+                    iRow += (simMatrix[simMatrixTopicList[topicId][i]][simMatrixTopicList[ti2][j]][1]) ** 2
+                    # countt += 1
             # print iRow
-            lenOfIRow = len(simMatrixTopicList[topicId]) * len(simMatrixTopicList[ti2])
-            extDisMatrix[topicId][ti2] = iRow / float(lenOfIRow)
+            iRowNum = len(simMatrixTopicList[topicId]) * len(simMatrixTopicList[ti2])
+            # print 'iRowNum:', iRowNum, 'countt:', countt
+            extDisMatrix[topicId][ti2] = iRow/iRowNum
             iRow = 0.0
+            # countt = 0
 
     print 'external distance:', extDisMatrix
 
     totExtDis = 0
     aveExtDis = 0
-    num = 0
+
     for i in extDisMatrix:
         for j in i:
-            if j != 0:
-                totExtDis += j
-                num += 1
-    aveExtDis = totExtDis / float(num)
+            totExtDis += j
+    extNoneZeroNum = (1 + cols - 1) * (cols - 1)/2
+
+    aveExtDis = 1/(totExtDis/extNoneZeroNum)
 
     print 'average external distance:', aveExtDis
     print 'inner/external value:', aveInnDis/aveExtDis
+
+    # return aveInnDis, aveExtDis
+
+
+
+
+
+
+
+
+
 
 
 
@@ -417,18 +497,88 @@ def ldaa(vCid, topicNum):
                     topicDistNoneNum += 1
             else:
                 userIdNoneNum += 1
-        # print 'topic', topicId, 'is calculated.'
-    # for i in topicDist:
-    #     print i
+
+    topicWordBListL = []
+    # topicWordBListLSec = []
+    topicWordBListL2 = []
+
+    # print Top 10 frequent words in a topic & the barrageList of the topic, in one time
+    for i in topicNumList:
+        bContentList2 = xmlDL.divideSent(aTopicNewUniBContentListString[i], 0)
+        wordList2 = getMostWord(bContentList2, 20)
+        print '------------topic', i, ':',
+        for j in wordList2:
+            print j[0],
+        print
+
+    # print Top 10 frequent words in a topic & the barrageList of the topic
     for i in topicNumList:
         print '------------topic', i, '-------------users:', topicUserNumList
-        bContentList = xmlDL.divideSent(aTopicNewUniBContentListString[i])
+        bContentList = xmlDL.divideSent(aTopicNewUniBContentListString[i], 0)
         wordList = getMostWord(bContentList, 20)
         for j in wordList:
             print j[0], j[1]
 
         for j in aTopicNewUniBContentListString[i]:
-            print j[0], j[1]
+            # eg: abb5230a 417.671 灵尊：哟，火柴棍
+            # print j[2]
+
+            if wordList[0][0].encode('utf-8') in j[2]:
+                util.printList(j)
+
+        # the index list of all barrage in topic i which contains the 1st frequent word in topic i
+        topicIWord1BList = [j[1] for j in aTopicNewUniBContentListString[i] if wordList[0][0].encode('utf-8') in j[2]]
+        topicWordBListL.append(topicIWord1BList)
+
+        # second word
+        # topicIWord1BListSec = [j[1] for j in aTopicNewUniBContentListString[i] if wordList[1][0].encode('utf-8') in j[2]]
+        # topicWordBListLSec.append(topicIWord1BListSec)
+
+        # 0.002*"合影" + 0.002*"钱" + 0.002*"撒花" + 0.002*"没" + 0.002*"完结" + 0.002*"看" + 0.002*"啊" + 0.002*"之" + 0.002*"湫" + 0.002*"一个"
+        # "合影" + "钱" + "撒花" + "没" + .....
+        wordList2 = rmNum(ldaOut[i][1].encode('utf-8'))
+
+        # get the most weight word in wordList2(after deleting actors' name)
+        # eg: wordList2 = '''0.440*"小凡" + 0.030*"鲸鱼" + 0.018*"上线" + 0.014*"灰" + 0.013*"套路" + 0.012*"官方" + 0.010*"小痴" + 0.009*"滴血" + 0.009*"姐姐" + 0.009*"嘴"'''
+        # firstWord = '上线', (default firstWord is '小凡')
+        firstWord = wordList2[0]
+        for word in wordList2:
+            if word in util.getTxtList('data/stopWord/jiebaNewWord_Qingyunzhi.txt'):
+                continue
+            else:
+                firstWord = word
+                break
+
+        # the index list of all barrage in topic i which contains the 1st frequent word(with weight) in topic i
+        topicIWord1BList2 = [j[1] for j in aTopicNewUniBContentListString[i] if firstWord in j[2]]
+        topicWordBListL2.append(topicIWord1BList2)
+
+    plt.figure(1)
+    plt.subplot(211)
+    for i in topicWordBListL2:
+        y = [topicWordBListL2.index(i) for indexx in range(len(i))]
+        plt.scatter(i, y, marker = 'x', color = 'r')
+    plt.plot([], marker = 'x', color = 'r', label = 'Most weight words')
+    plt.xlim(0,)
+    plt.legend()
+    plt.xlabel('Barrage Time(s)')
+    plt.ylabel('Topic ID')
+
+    plt.subplot(212)
+    for i in topicWordBListL:
+        y = [topicWordBListL.index(i) for indexx in range(len(i))]
+        plt.scatter(i, y, marker = '.', color = 'b')
+        # print 'len(i), len(y):', len(i), len(y), i, y
+    plt.plot([], marker = '.', color = 'b', label = 'Most frequent words')
+    plt.xlim(0,)
+    plt.legend()
+    plt.xlabel('Barrage Time(s)')
+    plt.ylabel('Topic ID')
+
+    plt.show()
+
+
+
 
     print 'the num of users of different topics:', topicUserNumList
     print 'the num of users who is not in userCodeIdList:', userIdNoneNum
@@ -476,51 +626,66 @@ def ldaa(vCid, topicNum):
 
     # plt.show()
 
-    return 1/aveInnDis, 1/aveExtDis
+    # return 1/aveInnDis, 1/aveExtDis
+    return aveInnDis, aveExtDis
+
+
 
 
 
 if __name__ == '__main__':
     start = time.time()
 
+    # inputt = '''0.440*"小凡" + 0.030*"鲸鱼" + 0.018*"上线" + 0.014*"灰" + 0.013*"套路" + 0.012*"官方" + 0.010*"小痴" + 0.009*"滴血" + 0.009*"姐姐" + 0.009*"嘴"'''
+    # wordList2 = rmNum(inputt)
+    # sys.exit()
     # 10506396
     vCid = xmlDL.vCid
+
+    dic, corpus, tfidf, bContentList, newUniBContentListString = preLda(vCid)
 
     res1 = []
     res2 = []
     res3 = []
-    for i in range(5, 8):
-        rr, bb = ldaa(vCid, i)
+    res4 = []
+    startNum = 5
+    endNum = 30
+    for i in range(startNum, endNum):
+        rr, bb = ldaa(dic, corpus, tfidf, bContentList, newUniBContentListString, i)
         res1.append(rr)
         res2.append(bb)
         res3.append(rr/bb)
-    # print res1, res2, res3
-    # ldaa(vCid, 10)
+        res4.append(i*rr/bb)
+    print 'res1, res2, res3, res4:', res1, res2, res3, res4
+    # ldaa(dic, corpus, tfidf, bContentList, 3)
 
     # res1 = [1.0544493026127693, 1.0631692852322596, 1.0706627594883988, 1.0762710917061373, 1.0745842686447082, 1.0933972543829975, 1.0888570040125489, 1.0911575219351848, 1.0927331799748239, 1.0945941533688093, 1.1063791046526219, 1.1067955828816247]
     # res2 = [1.7322792524164738, 2.0461452351681504, 2.3313144203074438, 2.6418363406085343, 2.9201591076490407, 3.2109596182074238, 3.5214219904499773, 3.8210286583022359, 4.0992489887148995, 4.3890003206949713, 4.7383323344126937, 4.9375910218306878]
     # res3 = [0.60870630479574606, 0.51959619823608916, 0.45925283615206414, 0.40739506651582491, 0.36798825989650735, 0.34052040025137603, 0.30920946338311806, 0.28556643237007523, 0.26656911619252288, 0.2493948674844223, 0.23349546350250994, 0.22415699842050976]
-    xlim = range(3, len(res1)+3)
+    xlim = range(startNum, len(res1)+startNum)
 
     plt.figure(1)
-    plt.subplot(311)
+    plt.subplot(411)
     plt.plot(xlim, res1, 'r')
     plt.xlabel("Topic Number")
     plt.ylabel("Inner Distance")
 
-    plt.subplot(312)
+    plt.subplot(412)
     plt.plot(xlim, res2, 'g')
     plt.xlabel("Topic Number")
     plt.ylabel("External Distance")
 
-    plt.subplot(313)
+    plt.subplot(413)
     plt.plot(xlim, res3, 'b')
     plt.xlabel("Topic Number")
-    plt.ylabel("Inner/External Distance")
-    plt.show()
+    plt.ylabel("Inn/Ext Distance")
 
-    # print avePossValueL
-    # ldaa(vCid, 7)
+    plt.subplot(414)
+    plt.plot(xlim, res4, 'y')
+    plt.xlabel("Topic Number")
+    plt.ylabel("M * Inn/Ext Distance")
+    # plt.show()
+
 
 
 

@@ -12,6 +12,11 @@ import os
 
 jieba.load_userdict('data/jiebaNewWord/jiebaNewWord.txt')
 
+# print every element in a list 'l' in a line
+def printList(l):
+    for i in l:
+        print i,
+    print
 
 # return a matched curve with the dimension 3
 # input parameter type: np.ndarray
@@ -155,6 +160,12 @@ def getFilesOfDir(vCid):
 
     return files
 
+def decodeList(wordList):
+    highFreqWordList = []
+    for i in wordList:
+        w = unicode(i, "utf-8")
+        highFreqWordList.append(w)
+    return highFreqWordList
 
 if __name__ == '__main__':
     # 10506396
@@ -176,8 +187,10 @@ if __name__ == '__main__':
 
     # print getFilesOfDir(vCid)
 
-
-    writeUIdList(vCid, filePath)
+    stopWords = getTxtList('/Users/admin/Summer/GradDesign/danmu/data/stopWord/stopWords.txt')
+    h2 = decodeList(stopWords)
+    print u'人' in h2
+    # writeUIdList(vCid, filePath)
 
 
 

@@ -17,7 +17,7 @@ import util
 
 # all words should be added
 jieba.load_userdict('data/jiebaNewWord/jiebaNewWord.txt')
-# jieba.load_userdict('data/jiebaNewWord/jiebaNewWord_Qingyunzhi.txt')
+jieba.load_userdict('data/jiebaNewWord/jiebaNewWord_Qingyunzhi.txt')
 
 
 comUrl = 'http://comment.bilibili.tv'
@@ -33,7 +33,10 @@ everyDayTime = ''
 # 4523969 伪装者20
 # 9075603 青云志01
 # 9648652 青云志07
-vCid = '9648652'
+# 15964545 全职高手01
+# 15964540 全职高手02
+# 17599975 全职高手07(刚更新，所以弹幕不多)
+vCid = '1675077'
 
 def decodeList(wordList):
     highFreqWordList = []
@@ -124,17 +127,26 @@ def migrateBD(vCid):
     # all barrage data with 9 parameters: 8 barrage parameters, and barrage data
     return newbListArray
 
-# input: the return value of migrateBD()
+# input: (1) the return value of migrateBD()
+# (2) delProperty: 0: delete actors' name
+#                  1: hold actors' name
 # return: all divided barrage data: 2d list
-def divideSent(allBD):
+def divideSent(allBD, delProperty):
     # the list of all divided barrages
     divBarrageList = []
 
     # all words should be deleted
     highFreqWords = util.getTxtList('/Users/admin/Summer/GradDesign/danmu/data/highFreqWord/highFreqWords.txt')
     stopWords = util.getTxtList('/Users/admin/Summer/GradDesign/danmu/data/stopWord/stopWords.txt')
-    newWordsQingyunzhi = util.getTxtList('data/stopWord/jiebaNewWord_Qingyunzhi.txt')
-    # newWordsQingyunzhi = []
+
+    if delProperty == 0:
+        newWordsQingyunzhi = util.getTxtList('data/stopWord/jiebaNewWord_Qingyunzhi.txt')
+        print 'Qingyunzhi is deleted...'
+    elif delProperty == 1:
+        newWordsQingyunzhi = []
+        print 'Qingyunzhi is not deleted...'
+    else:
+        newWordsQingyunzhi = []
 
     highFreqWordList = decodeList(highFreqWords)
     stopWordList = decodeList(stopWords)
@@ -159,7 +171,6 @@ def divideSent(allBD):
         oneBarrageList = [word for word, flag in oneBarrageList_cut if flag == 'n']
         # oneBarrageList = [word for word, flag in oneBarrageList_cut if flag == 'n' or flag == 'a']
 
-        # remove word in highFreqWords
         # remove word in highFreqWords
         redWordL = list((set(highFreqWordList).union(set(stopWordList))).union(set(newWordsQingyunzhiList)))
 
@@ -194,8 +205,8 @@ if __name__ == '__main__':
         print i
     # downloadBD(vCid)
     allBD = migrateBD(vCid)
-    res = divideSent(allBD)
-    #
+    # res = divideSent(allBD, 1)
+
     # mid = time.time()
     # print "spend time half way: ", mid - start
     #

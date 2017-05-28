@@ -9,6 +9,7 @@ import jieba
 import math
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
 
 import sentimentAnalysis
 import util
@@ -53,6 +54,9 @@ for elem in tree.iter(tag = "d"):
             a = sentimentAnalysis.getScore(word_list)
             # if int(pDataList[4]) < 1482754065:
             #     if int(pDataList[8]) == 1:
+
+            # eg: a = 2282.95996094 0 2 0 666真爱 0
+
             a = (float(pDataList[0]), 0) + a + (elem.text, 0)
             scoreList.append(a)
             # b = (float(pDataList[0]), 0) + a + (elem.text, 0)
@@ -61,9 +65,14 @@ for elem in tree.iter(tag = "d"):
         else:
             # print elem.text
             continue
-print scoreList
+
 
 scoreList.sort()
+
+for i in scoreList:
+    for j in i:
+        print j,
+    print
 
 summ = 0
 for s in scoreList:
@@ -75,43 +84,46 @@ print summ, " positive barrages.."
 
 interval = 20
 # total barrage number in every 'interval' seconds
-aveBarrageNum = np.linspace(0, 0, scoreList[-1][0]/interval + 1)
-totalBarragePosScore = np.zeros(scoreList[-1][0]/interval + 1)
-totalBarrageNegScore = np.zeros(scoreList[-1][0]/interval + 1)
-aveBarragePosScore = np.zeros(scoreList[-1][0]/interval + 1)
-aveBarrageNegScore = np.zeros(scoreList[-1][0]/interval + 1)
+totalLen = int(scoreList[-1][0]/interval) + 1
+print totalLen
+aveBarrageNum = np.linspace(0, 0, totalLen)
+totalBarragePosScore = np.zeros(totalLen)
+totalBarrageNegScore = np.zeros(totalLen)
+aveBarragePosScore = np.zeros(totalLen)
+aveBarrageNegScore = np.zeros(totalLen)
 
-totalBarragePosScoree = np.zeros(scoreList[-1][0]/interval + 1)
-aveBarragePosScoree = np.zeros(scoreList[-1][0]/interval + 1)
-posScoreNumm = np.zeros(scoreList[-1][0]/interval + 1)
+totalBarragePosScoree = np.zeros(totalLen)
+aveBarragePosScoree = np.zeros(totalLen)
+posScoreNumm = np.zeros(totalLen)
 
-# positive and negative barrage number in every 10s
-posScoreNum = np.zeros(scoreList[-1][0]/interval + 1)
-negScoreNum = np.zeros(scoreList[-1][0]/interval + 1)
+# positive and negative barrage number in every 'interval' seconds
+posScoreNum = np.zeros(totalLen)
+negScoreNum = np.zeros(totalLen)
 
 # total positive and negative score in 10s
 for score in scoreList:
     # print score[0], score[4] # output time & text
     # total barrage number in every 10s
-    aveBarrageNum[score[0]/interval] += 1
+    intScore0 = int(score[0]/interval)
+    aveBarrageNum[intScore0] += 1
 
     value = score[2] + score[3]
     newScoree.append([score[0], value])
-    totalBarragePosScoree[score[0]/interval] += value
-    posScoreNumm[score[0]/interval] += 1
+    totalBarragePosScoree[intScore0] += value
+    posScoreNumm[intScore0] += 1
 
     if value > 0:
         newScore.append([score[0], score[2]])
-        totalBarragePosScore[score[0]/interval] += score[2]
-        posScoreNum[score[0]/interval] += 1
-        if totalBarragePosScore[score[0]/interval] > 60000:
+        totalBarragePosScore[intScore0] += score[2]
+        posScoreNum[intScore0] += 1
+        if totalBarragePosScore[intScore0] > 60000:
             print score[0]
     elif value == 0:
         newScore.append([score[0], 0])
     else:
         newScore.append([score[0], score[3]])
-        totalBarrageNegScore[score[0]/interval] += score[3]
-        negScoreNum[score[0]/interval] += 1
+        totalBarrageNegScore[intScore0] += score[3]
+        negScoreNum[intScore0] += 1
     # print totalBarragePosScore[50]
 
     # if int(score[0]/interval) == 189:
@@ -157,9 +169,17 @@ plt.figure(2)
 plt.title("Time-Barrage Number")
 plt.xlabel("Barrage Time(30s)")
 plt.ylabel("Barrage Number")
+
+# plot the first curve
 plt.plot(aveBarrageNum)
 print '------------------print aveBarrageNum', aveBarrageNum
-plt.plot(util.matchedCurve(aveBarrageNum), 'r')
+
+# plot the second(matching) curve
+func1 = util.matchedCurve(aveBarrageNum)
+xAxis1 = np.arange(0, aveBarrageNum.size, 1)
+plt.plot(xAxis1, func1(xAxis1), 'r')
+
+# sys.exit()
 
 plt.figure(3)
 plt.title("Time-Positive/Negtive Sentiment")
@@ -168,22 +188,25 @@ plt.subplot(311)
 plt.xlabel("Barrage Time(30s)")
 plt.ylabel("Positive Sentiment")
 plt.plot(aveBarragePosScore)
-posMatched = util.matchedCurve(aveBarragePosScore)
-plt.plot(posMatched, 'r')
+func311 = util.matchedCurve(aveBarragePosScore)
+xAxis311 = np.arange(0, aveBarragePosScore.size, 1)
+plt.plot(xAxis311, func311(xAxis311), 'r')
 
 plt.subplot(312)
 plt.xlabel("Barrage Time(30s)")
 plt.ylabel("Negtive Sentiment")
 plt.plot(aveBarrageNegScore)
-negMatched = util.matchedCurve(aveBarrageNegScore)
-plt.plot(negMatched, 'r')
+func312 = util.matchedCurve(aveBarrageNegScore)
+xAxis312 = np.arange(0, aveBarrageNegScore.size, 1)
+plt.plot(xAxis312, func312(xAxis312), 'r')
 
 plt.subplot(313)
 plt.xlabel("Barrage Time(30s)")
 plt.ylabel("Integrated Sentiment")
 plt.plot(aveBarragePosScoree)
-intMatched = util.matchedCurve(aveBarragePosScoree)
-plt.plot(intMatched, 'r')
+func313 = util.matchedCurve(aveBarragePosScoree)
+xAxis313 = np.arange(0, aveBarragePosScoree.size, 1)
+plt.plot(xAxis313, func313(xAxis313), 'r')
 
 # plt.figure(4)
 # plt.plot(aveBarrageNegScore2)

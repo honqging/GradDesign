@@ -23,6 +23,7 @@ nrows = table.nrows
 col_list = table.col_values(0)
 
 # print type(sentence)
+# return sentiment type of a word
 def getWordType(wordd):
     if type(wordd) == str:
         # print wordd, type(wordd)

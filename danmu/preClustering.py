@@ -142,8 +142,13 @@ if __name__ == '__main__':
     # print readUsers(userTxt)
 
     favTagFile = 'data/users/' + vCid + '/favTagTList4.txt'
-    writeFavTags(userTxt, favTagFile)
+    # writeFavTags(userTxt, favTagFile)
 
     # used to analyze favTag1.txt
-    tFav = 'favTagTlist1.txt'
-    # analyFavTags(tFav)
+    tFav = 'data/users/' + vCid
+    analyFavTags(tFav)
+
+
+
+
+    #
