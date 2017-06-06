@@ -5,6 +5,7 @@ import jieba
 import xlrd
 import time
 import jieba.posseg as pseg
+import sys
 
 sentence1 = ["我", "好", "喜欢", "这个", "电影啊", "讨厌"]
 sentence2 = "我非常喜欢这个电影啊, 但是我讨厌主角"
@@ -22,6 +23,9 @@ table = data.sheet_by_index(0)
 nrows = table.nrows
 col_list = table.col_values(0)
 
+# print col_list, type(col_list)
+# sys.exit()
+
 # print type(sentence)
 # return sentiment type of a word
 def getWordType(wordd):
@@ -34,6 +38,7 @@ def getWordType(wordd):
         if cSenti == 'PA' or cSenti == 'PE':
             return 1
         elif cSenti == 'PD' or cSenti == 'PH' or cSenti == 'PG' or cSenti == 'PB' or cSenti == 'PK':
+            # print cSenti, wordd
             return 2
         elif cSenti == 'NA':
             return 3
@@ -51,9 +56,13 @@ def getWordType(wordd):
         return 0
 
 def getSentiType(wList):
-    sentiTList = []
+    sentiTList = [0, 0, 0, 0, 0, 0, 0]
     for word in wList:
-        sentiTList.append(getWordType(word))
+        wordScore = getWordType(word)
+        if wordScore == 0:
+            continue
+        # not calculating very, not, no, much.....
+        sentiTList[wordScore-1] += 1
     return sentiTList
 
 
@@ -65,9 +74,9 @@ def getScore(wList):
 
     # get the sentiment score of each sentence
     for word in wList:
-        # print "word: ", word
         # word in danmuBili.py is coded in unicode.
-        word = word.encode("utf-8")
+        if type(word) is not str:
+            word = word.encode("utf-8")
 
         # start = time.time()
         # wtype = getSentiType(word)
@@ -128,10 +137,16 @@ def getScore(wList):
         negScore = 0
     return posScore, negScore
 
-# return two lists: wordTypeList & wordList
-def getScoreBySen(sentence):
+def getScore2(sentence):
     wordList = jieba.lcut(sentence, cut_all=False)
-    return getSentiType(wordList), wordList
+    for i in wordList:
+        print i
+    return getScore(wordList)
+
+# return two lists: wordTypeList & wordList
+def getScore7(sentence):
+    wordList = jieba.lcut(sentence, cut_all=False)
+    return getSentiType(wordList)
 
 def printScoreAndWord(result):
     wordTypeList, wordList = result
@@ -141,11 +156,13 @@ def printScoreAndWord(result):
 
 if __name__ == "__main__":
     t1 = time.time()
-    for i in range(10):
-        print getWordType("讨厌")
-        # print getWordType("我")
+    for i in range(1):
+        # print getWordType("讨厌")
+        print getScore7(sentence2)
+        # print getScore2(sentence4)
     t2 = time.time()
     print 'Spent time: ', t2 - t1
+
 
     oneBarrageList = pseg.cut(sentence2)
     for word, flag in oneBarrageList:

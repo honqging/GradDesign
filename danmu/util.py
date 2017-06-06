@@ -174,8 +174,19 @@ if __name__ == '__main__':
     filePath = 'data/users/' + vCid + '/'
     # getTotalNumber()
 
-    wordList1 = jieba.lcut('我觉得这个世界全怕猫。猫吃鱼也吃老鼠', cut_all=False)
-    wordList2 = jieba.lcut('我觉得这个世界狗狗。猫吃鱼也打狗狗', cut_all=False)
+
+    wordList = jieba.lcut('我是同济大学软件工程专业的学生', cut_all=False)
+    print "精确模式:", '/'.join(wordList)
+
+    wordList = jieba.lcut('我是同济大学软件工程专业的学生', cut_all=True)
+    print "全模式:", '/'.join(wordList)
+
+    wordList = jieba.cut_for_search('我是同济大学软件工程专业的学生')
+    print "搜索引擎模式:", '/'.join(wordList)
+
+
+    # for i in wordList1:
+    #     print i,
 
     list1 = [1, 4, 1, 4, 9, 2]
     array1 = np.array(list1)

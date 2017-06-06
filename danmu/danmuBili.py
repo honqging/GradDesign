@@ -14,10 +14,61 @@ import sys
 import sentimentAnalysis
 import util
 import xmlDL
+import lda
 
 # def numberDistribution(scoreList):
 #     continue
 
+# get users whose barrage less than num(eg: 3)
+def getUserList(num):
+    userList = []
+    bList = xmlDL.migrateBD(xmlDL.vCid)
+    uniBContentList, uniBContentList2, uniBContentListString, bNumPerUser = lda.getUserAndBarrageList(bList)
+    for i in range(len(bNumPerUser)):
+        # if bNumPerUser[i][1] == 1:
+        #     numOfUsersList[0] += 1
+        # elif bNumPerUser[i][1] == 2:
+        #     numOfUsersList[1] += 1
+        # elif bNumPerUser[i][1] == 3:
+        #     numOfUsersList[2] += 1
+        if bNumPerUser[i][1] >= num:
+            userList.append(bNumPerUser[i][0])
+    return userList
+
+# print getUserList(3)
+# sys.exit()
+
+# only calculate barrages num/per larger than 3
+def getScoreListFromVCid(vCid):
+    scoreList2 = []
+
+    # userList whose barrage is larger than 3
+    userList = getUserList(3)
+    bList = xmlDL.migrateBD(vCid)
+    for b in bList:
+        if b[6] in userList:
+            word_list = jieba.lcut(b[8], cut_all=False)
+            a = sentimentAnalysis.getScore(word_list)
+            a = (float(b[0]), b[6]) + a + (b[8], 0)
+            scoreList2.append(a)
+        else:
+            continue
+    return scoreList2
+scoreList2 = getScoreListFromVCid(xmlDL.vCid)
+
+def getScoreListFromVCid3(vCid):
+    scoreList3 = []
+
+    # userList whose barrage is larger than 3
+    userList = getUserList(3)
+    bList = xmlDL.migrateBD(vCid)
+    for b in bList:
+        word_list = jieba.lcut(b[8], cut_all=False)
+        a = sentimentAnalysis.getScore(word_list)
+        a = (float(b[0]), b[6]) + a + (b[8], 0)
+        scoreList3.append(a)
+    return scoreList3
+scoreList3 = getScoreListFromVCid3(xmlDL.vCid)
 
 tree = ET.parse("3876153ddd.xml")
 print type(tree)
@@ -37,7 +88,6 @@ for elem in tree.iter(tag = "d"):
     if len(pDataList) != 10:
         continue
     if int(pDataList[8]):
-        print pDataList[8]
         barrageDate = time.localtime(float(pDataList[4]))
         barrageDate2 = time.strftime("%Y-%m-%d %H:%M:%S", barrageDate)
         # print type(pDataList[8])
@@ -66,13 +116,17 @@ for elem in tree.iter(tag = "d"):
             # print elem.text
             continue
 
-
+# eg: 2341.10009766 0 3 0 这里一个bug，左边是墙哪里来的风？ 0
+scoreList = scoreList2
 scoreList.sort()
+# scoreList3.sort()
 
-for i in scoreList:
-    for j in i:
-        print j,
-    print
+
+# for i in scoreList:
+#     for j in i:
+#         print j,
+#     print
+# print 'scoreList[0]', scoreList[0]
 
 summ = 0
 for s in scoreList:
@@ -82,11 +136,12 @@ for s in scoreList:
 print summ, " positive barrages.."
 
 
-interval = 20
+interval = 30
 # total barrage number in every 'interval' seconds
 totalLen = int(scoreList[-1][0]/interval) + 1
 print totalLen
 aveBarrageNum = np.linspace(0, 0, totalLen)
+aveBarrageNum3 = np.linspace(0, 0, totalLen)
 totalBarragePosScore = np.zeros(totalLen)
 totalBarrageNegScore = np.zeros(totalLen)
 aveBarragePosScore = np.zeros(totalLen)
@@ -128,6 +183,14 @@ for score in scoreList:
 
     # if int(score[0]/interval) == 189:
     #     print score[4], sentimentAnalysis.getScoreBySent(score[4])
+
+for score in scoreList3:
+    intScore0 = int(score[0]/interval)
+    aveBarrageNum3[intScore0] += 1
+for i in range(len(aveBarrageNum3)):
+    aveBarrageNum[i] = (aveBarrageNum3[i] - aveBarrageNum[i])/float(aveBarrageNum3[i])
+
+
 print "-----字幕解析完毕-----"
 
 for index in range(len(negScoreNum)):
@@ -166,9 +229,9 @@ for score in newScore:
 # plt.plot(newScoreX, newScoreY)
 
 plt.figure(2)
-plt.title("Time-Barrage Number")
-plt.xlabel("Barrage Time(30s)")
-plt.ylabel("Barrage Number")
+# plt.title(u"时间－弹幕数量分布")
+plt.xlabel(u"弹幕出现时间(20s)")
+plt.ylabel(u"噪音弹幕数量/原始弹幕数量")
 
 # plot the first curve
 plt.plot(aveBarrageNum)
@@ -184,29 +247,29 @@ plt.plot(xAxis1, func1(xAxis1), 'r')
 plt.figure(3)
 plt.title("Time-Positive/Negtive Sentiment")
 
-plt.subplot(311)
-plt.xlabel("Barrage Time(30s)")
-plt.ylabel("Positive Sentiment")
+plt.subplot(211)
+plt.xlabel(u"视频时间(30s)")
+plt.ylabel(u"正向情感")
 plt.plot(aveBarragePosScore)
 func311 = util.matchedCurve(aveBarragePosScore)
 xAxis311 = np.arange(0, aveBarragePosScore.size, 1)
 plt.plot(xAxis311, func311(xAxis311), 'r')
 
-plt.subplot(312)
-plt.xlabel("Barrage Time(30s)")
-plt.ylabel("Negtive Sentiment")
+plt.subplot(212)
+plt.xlabel(u"视频时间(30s)")
+plt.ylabel(u"负向情感")
 plt.plot(aveBarrageNegScore)
 func312 = util.matchedCurve(aveBarrageNegScore)
 xAxis312 = np.arange(0, aveBarrageNegScore.size, 1)
 plt.plot(xAxis312, func312(xAxis312), 'r')
 
-plt.subplot(313)
-plt.xlabel("Barrage Time(30s)")
-plt.ylabel("Integrated Sentiment")
-plt.plot(aveBarragePosScoree)
-func313 = util.matchedCurve(aveBarragePosScoree)
-xAxis313 = np.arange(0, aveBarragePosScoree.size, 1)
-plt.plot(xAxis313, func313(xAxis313), 'r')
+# plt.subplot(313)
+# plt.xlabel("Barrage Time(30s)")
+# plt.ylabel("Integrated Sentiment")
+# plt.plot(aveBarragePosScoree)
+# func313 = util.matchedCurve(aveBarragePosScoree)
+# xAxis313 = np.arange(0, aveBarragePosScoree.size, 1)
+# plt.plot(xAxis313, func313(xAxis313), 'r')
 
 # plt.figure(4)
 # plt.plot(aveBarrageNegScore2)

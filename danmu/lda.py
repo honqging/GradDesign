@@ -71,23 +71,24 @@ def UBdistribution(bNumPerUser):
     #     bNumPerUser.append(len(user2BList))
 
     # numOfUsersList[0]: the number of users who has only 1 barrage
-    numOfUsersList = [0] * 3
+    numOfUsersList = [0] * 10
     for i in range(len(bNumPerUser)):
-        if bNumPerUser[i][1] == 1:
-            numOfUsersList[0] += 1
-        elif bNumPerUser[i][1] == 2:
-            numOfUsersList[1] += 1
-        elif bNumPerUser[i][1] >= 3:
-            numOfUsersList[2] += 1
+        # if bNumPerUser[i][1] == 1:
+        #     numOfUsersList[0] += 1
+        # elif bNumPerUser[i][1] == 2:
+        #     numOfUsersList[1] += 1
+        # elif bNumPerUser[i][1] == 3:
+        #     numOfUsersList[2] += 1
+        for j in range(len(numOfUsersList)):
+            if bNumPerUser[i][1] == j+1:
+                numOfUsersList[j] += 1
 
-            # print userIndex, userId
-            # print i, bNumPerUser[i][0], bNumPerUser[i][1]
     return numOfUsersList
 
 # remove users whose barrage number is less than lessNum
 def removeBLessNum(uniBContentListString, bNumPerUser, lessNum):
     bNumMoreUserL = [i[0] for i in bNumPerUser if i[1] >= lessNum]
-    print len(bNumMoreUserL), len(uniBContentListString)
+    print 'lll', len(bNumMoreUserL), len(uniBContentListString)
 
     # print len(set(bNumMoreUserL).intersection(set(uniBContentListString)))
     # print set(bNumMoreUserL).intersection(set(uniBContentListString))
@@ -414,7 +415,7 @@ def ldaa(dic, corpus, tfidf, bContentList, newUniBContentListString, topicNum):
 
     # sys.exit()
 
-
+    # topic possibility distribution in user profile
     topicPosi = []
     for topicId in range(topicNum):
         posiList = [i[1] for i in resList if i[0] == topicId]
@@ -423,7 +424,7 @@ def ldaa(dic, corpus, tfidf, bContentList, newUniBContentListString, topicNum):
         possi = sum(posiList)/len(posiList)
         topicPosi.append(possi)
 
-    # sys.exit(0)
+    # sys.exit()
 
     fullPath = os.getcwd()
 
@@ -468,6 +469,8 @@ def ldaa(dic, corpus, tfidf, bContentList, newUniBContentListString, topicNum):
         aTopicNewUniBContentListString.append([])
         topicUserNumList.append(0)
 
+    # used to calculate the number of topicPercDist added
+    topicPercDistAddNum = np.zeros(topicNum)
     for i in range(len(resList)):
         # print i
         topicId = resList[i][0]
@@ -493,6 +496,7 @@ def ldaa(dic, corpus, tfidf, bContentList, newUniBContentListString, topicNum):
                     # the perc distribution of tagVideo number of a user
                     tagVPercLineOfUI = np.around(tagVNumLineOfUI / float(sum(tagVNumLineOfUI)), 3)
                     topicPercDist[topicId] += tagVPercLineOfUI
+                    topicPercDistAddNum[topicId] += 1
                 else:
                     topicDistNoneNum += 1
             else:
@@ -501,6 +505,7 @@ def ldaa(dic, corpus, tfidf, bContentList, newUniBContentListString, topicNum):
     topicWordBListL = []
     # topicWordBListLSec = []
     topicWordBListL2 = []
+    topicWordBListL3 = []
 
     # print Top 10 frequent words in a topic & the barrageList of the topic, in one time
     for i in topicNumList:
@@ -511,9 +516,13 @@ def ldaa(dic, corpus, tfidf, bContentList, newUniBContentListString, topicNum):
             print j[0],
         print
 
+    top10weightActor = []
+    top10weightNoActor = []
+
     # print Top 10 frequent words in a topic & the barrageList of the topic
     for i in topicNumList:
         print '------------topic', i, '-------------users:', topicUserNumList
+        # divideSent(,0) no actors' name
         bContentList = xmlDL.divideSent(aTopicNewUniBContentListString[i], 0)
         wordList = getMostWord(bContentList, 20)
         for j in wordList:
@@ -521,11 +530,10 @@ def ldaa(dic, corpus, tfidf, bContentList, newUniBContentListString, topicNum):
 
         for j in aTopicNewUniBContentListString[i]:
             # eg: abb5230a 417.671 灵尊：哟，火柴棍
-            # print j[2]
 
             if wordList[0][0].encode('utf-8') in j[2]:
                 util.printList(j)
-
+        print 'wordList[0][0]', wordList[0][0]
         # the index list of all barrage in topic i which contains the 1st frequent word in topic i
         topicIWord1BList = [j[1] for j in aTopicNewUniBContentListString[i] if wordList[0][0].encode('utf-8') in j[2]]
         topicWordBListL.append(topicIWord1BList)
@@ -542,29 +550,40 @@ def ldaa(dic, corpus, tfidf, bContentList, newUniBContentListString, topicNum):
         # eg: wordList2 = '''0.440*"小凡" + 0.030*"鲸鱼" + 0.018*"上线" + 0.014*"灰" + 0.013*"套路" + 0.012*"官方" + 0.010*"小痴" + 0.009*"滴血" + 0.009*"姐姐" + 0.009*"嘴"'''
         # firstWord = '上线', (default firstWord is '小凡')
         firstWord = wordList2[0]
+
         for word in wordList2:
+            # if '小葵' in wordList2:
+            #     firstWord = '小葵'
+            #     top10weightNoActor.append('小葵')
+            #     break
             if word in util.getTxtList('data/stopWord/jiebaNewWord_Qingyunzhi.txt'):
                 continue
             else:
                 firstWord = word
+                top10weightNoActor.append(word)
                 break
-
+        top10weightActor.append(wordList2[0])
         # the index list of all barrage in topic i which contains the 1st frequent word(with weight) in topic i
         topicIWord1BList2 = [j[1] for j in aTopicNewUniBContentListString[i] if firstWord in j[2]]
         topicWordBListL2.append(topicIWord1BList2)
 
+        # weight, with actors' name
+        topicIWord1BList3 = [j[1] for j in aTopicNewUniBContentListString[i] if wordList2[0] in j[2]]
+        topicWordBListL3.append(topicIWord1BList3)
+
+    print 'top 10 weight word with actor:',
+    for i in top10weightActor:
+        print i,
+    print
+
+    print 'top 10 weight word without actor:',
+    for i in top10weightNoActor:
+        print i,
+    print
+
     plt.figure(1)
     plt.subplot(211)
-    for i in topicWordBListL2:
-        y = [topicWordBListL2.index(i) for indexx in range(len(i))]
-        plt.scatter(i, y, marker = 'x', color = 'r')
-    plt.plot([], marker = 'x', color = 'r', label = 'Most weight words')
-    plt.xlim(0,)
-    plt.legend()
-    plt.xlabel('Barrage Time(s)')
-    plt.ylabel('Topic ID')
-
-    plt.subplot(212)
+    topicWordBListL = topicWordBListL3
     for i in topicWordBListL:
         y = [topicWordBListL.index(i) for indexx in range(len(i))]
         plt.scatter(i, y, marker = '.', color = 'b')
@@ -575,7 +594,17 @@ def ldaa(dic, corpus, tfidf, bContentList, newUniBContentListString, topicNum):
     plt.xlabel('Barrage Time(s)')
     plt.ylabel('Topic ID')
 
-    plt.show()
+    plt.subplot(212)
+    for i in topicWordBListL2:
+        y = [topicWordBListL2.index(i) for indexx in range(len(i))]
+        plt.scatter(i, y, marker = 'x', color = 'r')
+    plt.plot([], marker = 'x', color = 'r', label = 'Most weight words')
+    plt.xlim(0,)
+    plt.legend()
+    plt.xlabel('Barrage Time(s)')
+    plt.ylabel('Topic ID')
+
+    # plt.show()
 
 
 
@@ -592,11 +621,22 @@ def ldaa(dic, corpus, tfidf, bContentList, newUniBContentListString, topicNum):
     topicDist3 = np.transpose(np.transpose(topicDist) / np.float16(topicDist2))
     print topicDist3, '\n'
 
-    print topicPercDist, topicPercDist[1][1]
+    for i in range(len(topicPercDist)):
+        for j in range(len(topicPercDist[i])):
+            topicPercDist[i][j] = topicPercDist[i][j]/topicPercDistAddNum[i]
+    # topicPercDist = topicPercDist/topicPercDistAddNum
+    print 'topicPercDist, topicPercDist[1][1]:', topicPercDist, topicPercDist[1][1]
     np.savetxt('topicDist.txt', topicDist)
     np.savetxt('topicPercDist.txt', topicPercDist)
 
+    colorList = ['b', 'c', 'g', 'k', 'm', 'r', 'y']
+    plt.figure(5)
+    for i in range(len(topicPercDist)):
+        plt.plot(topicPercDist[i], colorList[i])
+    plt.xlabel = u'用户收藏视频主题类型'
+    plt.ylabel = u'用户收藏视频主题占比（各主题视频数量/所有主题视频数量）'
 
+    plt.show()
 
 
     print topicNum, "topics possibility average value:", topicPosi, sum(topicPosi)/len(topicPosi)
@@ -639,17 +679,17 @@ if __name__ == '__main__':
     # inputt = '''0.440*"小凡" + 0.030*"鲸鱼" + 0.018*"上线" + 0.014*"灰" + 0.013*"套路" + 0.012*"官方" + 0.010*"小痴" + 0.009*"滴血" + 0.009*"姐姐" + 0.009*"嘴"'''
     # wordList2 = rmNum(inputt)
     # sys.exit()
+
     # 10506396
     vCid = xmlDL.vCid
-
     dic, corpus, tfidf, bContentList, newUniBContentListString = preLda(vCid)
 
     res1 = []
     res2 = []
     res3 = []
     res4 = []
-    startNum = 5
-    endNum = 30
+    startNum = 7
+    endNum = 8
     for i in range(startNum, endNum):
         rr, bb = ldaa(dic, corpus, tfidf, bContentList, newUniBContentListString, i)
         res1.append(rr)
@@ -667,23 +707,23 @@ if __name__ == '__main__':
     plt.figure(1)
     plt.subplot(411)
     plt.plot(xlim, res1, 'r')
-    plt.xlabel("Topic Number")
-    plt.ylabel("Inner Distance")
+    plt.xlabel(u"主题个数")
+    plt.ylabel("SSW")
 
     plt.subplot(412)
     plt.plot(xlim, res2, 'g')
-    plt.xlabel("Topic Number")
-    plt.ylabel("External Distance")
+    plt.xlabel(u"主题个数")
+    plt.ylabel("SSB")
 
     plt.subplot(413)
     plt.plot(xlim, res3, 'b')
-    plt.xlabel("Topic Number")
-    plt.ylabel("Inn/Ext Distance")
+    plt.xlabel(u"主题个数")
+    plt.ylabel("SSW/SSB")
 
     plt.subplot(414)
     plt.plot(xlim, res4, 'y')
-    plt.xlabel("Topic Number")
-    plt.ylabel("M * Inn/Ext Distance")
+    plt.xlabel("主题个数")
+    plt.ylabel("WB-index")
     # plt.show()
 
 
@@ -691,12 +731,15 @@ if __name__ == '__main__':
 
 
 
-    # bList = xmlDL.migrateBD()
+    # bList = xmlDL.migrateBD(xmlDL.vCid)
 
     # eg: uniBContentList: ['user', ['b1', 'b2', 'b3']]
     # eg: uniBContentListString: ['22ccd704', '\xe7\x88\xb7\xe7\x88\xb7QAQ']
-    # uniBContentList, uniBContentListString, bNumPerUser = getUserAndBarrageList(bList)
-    # print UBdistribution(bNumPerUser)
+    # uniBContentList, uniBContentList2, uniBContentListString, bNumPerUser = getUserAndBarrageList(bList)
+    # for i in bNumPerUser:
+    #     print i
+    # bPu = UBdistribution(bNumPerUser)
+    # print bPu, len(bNumPerUser)-sum(bPu)
     # print len(uniBContentListString)
     # removeBLessNum(uniBContentListString, bNumPerUser, 3)
     # bContentList = xmlDL.divideSent(uniBContentListString)

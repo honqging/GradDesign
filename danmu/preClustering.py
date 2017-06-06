@@ -145,7 +145,7 @@ if __name__ == '__main__':
     # writeFavTags(userTxt, favTagFile)
 
     # used to analyze favTag1.txt
-    tFav = 'data/users/' + vCid
+    tFav = 'data/users/' + vCid + '/favTagTList.txt'
     analyFavTags(tFav)
 
 
